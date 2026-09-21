@@ -1,0 +1,41 @@
+services:
+  # Container do Suricata + Wazuh Agent
+  suricata-wazuh:
+    container_name: suricata-wazuh-container
+    image: ubuntu-suricata-wazuh:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_NICE
+    environment:
+      - WAZUH_MANAGER=172.21.0.4
+    volumes:
+      - /var/log/suricata:/var/log/suricata
+    networks:
+      - single-node_default
+    restart: always
+    command: ["suricata", "-c", "/etc/suricata/suricata.yaml", "-i", "eth0"]
+
+  # Host de Teste e Simulação de Tráfego
+  test-host:
+    container_name: test-host-container
+    image: ubuntu:24.04
+    networks:
+      - single-node_default
+    restart: always
+    tty: true
+    stdin_open: true
+    entrypoint: >
+      /bin/bash -c "
+      apt-get update && apt-get install -y 
+      curl wget net-tools iputils-ping tcpdump 
+      traceroute nmap iperf3 netcat-openbsd nano dnsutils &&
+      tail -f /dev/null"
+
+networks:
+  single-node_default:
+    external: true
+
